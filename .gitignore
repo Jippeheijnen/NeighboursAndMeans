@@ -1,0 +1,8 @@
+
+# Pycharm folders
+.idea/
+venv/
+
+# datasets
+datasets/
+
