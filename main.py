@@ -6,25 +6,52 @@ The data is in the following format
 
 """
 import math
-from typing import List, Any, Union
+from typing import List, Any, Union, Tuple
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
 import matplotlib.pyplot as plt
 
-
-def normalize_weather_data(dataset) -> List:
-    """
-    The weather data needs to be normalized.
-    (X - Xmin) / (Xmax - Xmin)
-    :param dataset: the un-normalized data
+"""
+    
+    :param dset: the un-normalized dataset
     :return: the same dataset but normalized.
     """
-    # todo: implement this
-    normalized_data = []
-    for row in dataset:
-        normalized_data.append(row[0], preprocessing.normalize(row[1:]))
-    return normalized_data
+
+
+# todo: implement this
+def normalize_weather_data(dset: np.ndarray[int, Any],
+                           *other_sets: np.ndarray[[int, Any]]) -> Union[
+    pd.DataFrame, Tuple[pd.DataFrame, Any]]:
+    """
+    The weather data needs to be normalized.
+    the following tactic is used for normalizing:
+    (X - Xmin) / (Xmax - Xmin)
+    :param dset: the un-normalized dataset. (np.ndarray[int, Any])
+    :param other_sets: optional other datasets. (List[np.array[int, Any]])
+    :return: the normalized dataset(s). (Union[pd.DataFrame, Tuple[pd.Dataframe]])
+    """
+
+    ndset = pd.DataFrame(dset.copy())
+    other_ndsets: List[pd.DataFrame] = []
+
+    # apply normalization techniques
+    if other_sets is None:
+        for column in ndset.columns:
+            ndset[column] = (ndset[column] -
+                             ndset[column].min()) / ndset[column].max()
+        return ndset
+    else:
+        for column in ndset.columns:
+            ndset[column] = (ndset[column] -
+                             ndset[column].min()) / ndset[column].max()
+        for other_dset in other_sets:
+            other_ndset: pd.DataFrame = pd.DataFrame(other_dset.copy())
+            for column in other_ndset.columns:
+                other_ndset[column] = (other_ndset[column] -
+                                       other_ndset[column].min()) / other_ndset[column].max()
+            other_ndsets.append(other_ndset)
+        return ndset, *other_ndsets
 
 
 def calculate_distance(a, b) -> float:
@@ -120,15 +147,27 @@ if __name__ == '__main__':
 
     ################### PART ONE ####################
 
-    dataset1 = np.genfromtxt('dataset1.csv', delimiter=';', usecols=[0, 1, 2, 3, 4, 5, 6, 7],
-                             converters={5: lambda s: 0 if s == b"-1" else float(s),
-                                         7: lambda s: 0 if s == b"-1" else float(s)})
-    data1 = np.genfromtxt('days.csv', delimiter=';', usecols=[1, 2, 3, 4, 5, 6, 7],
-                          converters={5: lambda s: 0 if s == b"-1" else float(s),
-                                      7: lambda s: 0 if s == b"-1" else float(s)})
+    dataset1: np.ndarray[int, Any] = np.genfromtxt('datasets/dataset1.csv', delimiter=';',
+                                                   usecols=[0, 1, 2, 3, 4, 5, 6, 7],
+                                                   converters={5: lambda s: 0 if s == b"-1" else float(s),
+                                                               7: lambda s: 0 if s == b"-1" else float(s)})
+    data1: np.ndarray[int, Any] = np.genfromtxt('datasets/days.csv', delimiter=';', usecols=[1, 2, 3, 4, 5, 6, 7],
+                                                converters={5: lambda s: 0 if s == b"-1" else float(s),
+                                                            7: lambda s: 0 if s == b"-1" else float(s)})
 
     # choose value for k.
     k = 3
+
+    # normalize the datasets.
+    # dataset1: pd.DataFrame = normalize_weather_data(dataset1)
+    # data1: pd.DataFrame = normalize_weather_data(data1)
+
+    dataset1, data1 = normalize_weather_data(dataset1, data1, )
+
+    print(f"Dataset1:\n"
+          f"{dataset1}")
+    print(f"Data1:\n"
+          f"{data1}")
 
     # print the assigned seasons
     print(f"The 9 assumed seasons for days.csv\n"
@@ -140,16 +179,16 @@ if __name__ == '__main__':
     # now for checking the validation list.
 
     # Create training_data with dates.
-    dataset2 = np.genfromtxt('dataset1.csv', delimiter=';', usecols=[0, 1, 2, 3, 4, 5, 6, 7],
+    dataset2 = np.genfromtxt('datasets/dataset1.csv', delimiter=';', usecols=[0, 1, 2, 3, 4, 5, 6, 7],
                              converters={5: lambda s: 0 if s == b"-1" else float(s),
                                          7: lambda s: 0 if s == b"-1" else float(s)})
     # Create test_data without dates.
-    data2 = np.genfromtxt('validation1.csv', delimiter=';', usecols=[1, 2, 3, 4, 5, 6, 7],
+    data2 = np.genfromtxt('datasets/validation1.csv', delimiter=';', usecols=[1, 2, 3, 4, 5, 6, 7],
                           converters={5: lambda s: 0 if s == b"-1" else float(s),
                                       7: lambda s: 0 if s == b"-1" else float(s)})
 
     # list with dates to validate the assumed seasons
-    checkdates = np.genfromtxt('validation1.csv', delimiter=';', usecols=[0, 1, 2, 3, 4, 5, 6, 7],
+    checkdates = np.genfromtxt('datasets/validation1.csv', delimiter=';', usecols=[0, 1, 2, 3, 4, 5, 6, 7],
                                converters={5: lambda s: 0 if s == b"-1" else float(s),
                                            7: lambda s: 0 if s == b"-1" else float(s)})
 
