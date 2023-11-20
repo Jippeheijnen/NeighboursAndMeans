@@ -180,7 +180,7 @@ if __name__ == '__main__':
     for k in range(1, 100):
         # Create a variable to keep track of successful season assumptions
         correct_assumpt = 0
-        result = KNN(dataset1, data1, k)
+        result = KNN(dataset1, validation1, k)
         # get the assumed seasons from KNN.
         seasons = list(row[:][0] for row in result)
         for row_iter in range(len(seasons)):
@@ -199,20 +199,16 @@ if __name__ == '__main__':
 
     ################### PART TWO ####################
 
-    # now for checking the days.
-
     # Create training_data with dates.
     dataset2: np.ndarray[int, Any] = np.genfromtxt('datasets/dataset1.csv', delimiter=';',
                                                    usecols=[0, 1, 2, 3, 4, 5, 6, 7])
     data2: np.ndarray[int, Any] = np.genfromtxt('datasets/validation1.csv', delimiter=';',
                                                 usecols=[0, 1, 2, 3, 4, 5, 6, 7],
                                                 converters={})
-    checkdates: np.ndarray[int, Any] = np.genfromtxt('datasets/days.csv', delimiter=';',
-                                                     usecols=[0, 1, 2, 3, 4, 5, 6, 7])
 
     # normalize everything
-    dataset2, data2, checkdates = add_dates([*normalize_weather_data(dataset2, data2, checkdates)],
-                                            [dataset2, data2, checkdates])
+    dataset2, data2 = add_dates([*normalize_weather_data(dataset2, data2)],
+                                            [dataset2, data2])
 
     # Variable for the different accuracy rates.
     accuracy_points = []
@@ -224,7 +220,7 @@ if __name__ == '__main__':
         # get the assumed seasons from KNN.
         seasons = list(row[:][0] for row in result)
         for row_iter in range(len(seasons)):
-            if translate(checkdates[row_iter][0]) == seasons[row_iter]:
+            if translate(data2[row_iter][0]) == seasons[row_iter]:
                 correct_assumpt += 1
         accuracy_points.append(correct_assumpt)
 
