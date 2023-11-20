@@ -5,18 +5,10 @@ The data is in the following format
 (date);windspeed;temp_avg;temp_min;temp_max;suntime;raintime;rain_amt
 
 """
-import math
 from typing import List, Any, Union, Tuple
 import numpy as np
 import pandas as pd
-from sklearn import preprocessing
 import matplotlib.pyplot as plt
-
-"""
-
-    :param dset: the un-normalized dataset
-    :return: the same dataset but normalized.
-    """
 
 
 def normalize_weather_data(dset: np.ndarray[int, Any],
@@ -136,7 +128,7 @@ def get_season(dataset, hvar_k):
     # check whether there is a tie.
     if (winter_cnt == lente_cnt or winter_cnt == zomer_cnt or winter_cnt == herfst_cnt) or (
             lente_cnt == zomer_cnt or lente_cnt == herfst_cnt) or (zomer_cnt == herfst_cnt):
-        # return the closed neighbour :)
+        # return the closest neighbour :)
         return translate(dataset[0][0])
 
     # check which season occurs most in neighbouring datapoints, and return that season.
@@ -182,24 +174,32 @@ if __name__ == '__main__':
     validation1: np.ndarray[int, Any] = np.genfromtxt('datasets/validation1.csv', delimiter=';',
                                                       usecols=[0, 1, 2, 3, 4, 5, 6, 7])
 
-    # choose value for k.
-    k = 60
+    # Variable for the different accuracy rates.
+    accuracy_points = []
 
-    # normalize the datasets.
-    # dataset1: pd.DataFrame = normalize_weather_data(dataset1)
-    # data1: pd.DataFrame = normalize_weather_data(data1)
+    for k in range(1, 100):
+        # Create a variable to keep track of successful season assumptions
+        correct_assumpt = 0
+        result = KNN(dataset1, data1, k)
+        # get the assumed seasons from KNN.
+        seasons = list(row[:][0] for row in result)
+        for row_iter in range(len(seasons)):
+            if translate(validation1[row_iter][0]) == seasons[row_iter]:
+                correct_assumpt += 1
+        accuracy_points.append(correct_assumpt)
 
-    # dataset1, data1, validation1 = add_dates([*normalize_weather_data(dataset1, data1, validation1)],
-    #                                          [dataset1, data1, validation1])
+    # Plot Accuracy
+    plt.xlabel('value of k -->')
+    plt.ylabel('accuracy in % -->')
+    plt.plot(accuracy_points)
+    plt.show()
 
-    # print the assigned seasons
-    print(f"The 9 assumed seasons for days.csv\n"
-          f"{list(list[:][0] for list in KNN(dataset1, data1, k))}"
-          f"\n")
+    # in this plot, we see that without the normalisation,
+    # an accuracy of 65 percent is reached.
 
     ################### PART TWO ####################
 
-    # now for checking the validation list.
+    # now for checking the days.
 
     # Create training_data with dates.
     dataset2: np.ndarray[int, Any] = np.genfromtxt('datasets/dataset1.csv', delimiter=';',
@@ -207,7 +207,7 @@ if __name__ == '__main__':
     data2: np.ndarray[int, Any] = np.genfromtxt('datasets/validation1.csv', delimiter=';',
                                                 usecols=[0, 1, 2, 3, 4, 5, 6, 7],
                                                 converters={})
-    checkdates: np.ndarray[int, Any] = np.genfromtxt('datasets/validation1.csv', delimiter=';',
+    checkdates: np.ndarray[int, Any] = np.genfromtxt('datasets/days.csv', delimiter=';',
                                                      usecols=[0, 1, 2, 3, 4, 5, 6, 7])
 
     # normalize everything
@@ -233,3 +233,7 @@ if __name__ == '__main__':
     plt.ylabel('accuracy in % -->')
     plt.plot(accuracy_points)
     plt.show()
+
+    # in this plot, the best accuracy is 62,5 percent.
+    # Note that this time the normalisation is applied to the datasets,
+    # but the accuracy per k amount of neighbours does not change significantly.
