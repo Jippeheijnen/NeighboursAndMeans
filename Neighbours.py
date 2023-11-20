@@ -13,45 +13,73 @@ from sklearn import preprocessing
 import matplotlib.pyplot as plt
 
 """
-    
+
     :param dset: the un-normalized dataset
     :return: the same dataset but normalized.
     """
 
 
-# todo: implement this
 def normalize_weather_data(dset: np.ndarray[int, Any],
                            *other_sets: np.ndarray[[int, Any]]) -> Union[
-    pd.DataFrame, Tuple[pd.DataFrame, Any]]:
+    np.ndarray[float, Any], Tuple[np.ndarray[float, Any], Any]]:
     """
     The weather data needs to be normalized.
+
+    The lows and highs of all datasets are combined and used, so that all the data points are equally normalized.
     the following tactic is used for normalizing:
     (X - Xmin) / (Xmax - Xmin)
-    :param dset: the un-normalized dataset. (np.ndarray[int, Any])
+    :param dset: the un-normalized dataset. (np.ndarray[float, Any])
     :param other_sets: optional other datasets. (List[np.array[int, Any]])
     :return: the normalized dataset(s). (Union[pd.DataFrame, Tuple[pd.Dataframe]])
     """
 
-    ndset = pd.DataFrame(dset.copy())
-    other_ndsets: List[pd.DataFrame] = []
+    ndset: np.ndarray[float, Any]
+    other_ndsets: List[np.ndarray[float, Any]] = list()
+
+    # getting all the columns min and maxes
+    dset = np.delete(dset, [0], axis=1)
+
+    mins: np.array = np.array([dset.min(0)])
+    maxes: np.array = np.array([dset.max(0)])
+
+    for other_set in other_sets:
+        other_set = np.delete(other_set, [0], axis=1)
+        min = np.array([other_set.min(0)])
+        max = np.array([other_set.max(0)])
+        mins = np.append(mins, min, axis=0)
+        maxes = np.append(maxes, max, axis=0)
 
     # apply normalization techniques
     if other_sets is None:
-        for column in ndset.columns:
-            ndset[column] = (ndset[column] -
-                             ndset[column].min()) / ndset[column].max()
+        ndset = np.subtract(dset, mins.min(0)) / np.subtract(maxes.max(0), mins.min(0))
         return ndset
     else:
-        for column in ndset.columns:
-            ndset[column] = (ndset[column] -
-                             ndset[column].min()) / ndset[column].max()
+        ndset = np.subtract(dset, mins.min(0)) / np.subtract(maxes.max(0), mins.min(0))
         for other_dset in other_sets:
-            other_ndset: pd.DataFrame = pd.DataFrame(other_dset.copy())
-            for column in other_ndset.columns:
-                other_ndset[column] = (other_ndset[column] -
-                                       other_ndset[column].min()) / other_ndset[column].max()
+            other_dset = np.delete(other_dset, [0], axis=1)
+            other_ndset = np.subtract(other_dset, mins.min(0)) / np.subtract(maxes.max(0), mins.min(0))
             other_ndsets.append(other_ndset)
         return ndset, *other_ndsets
+
+
+def add_dates(dateless: list, dates) -> Tuple:
+    """
+    The already normalised functions now lack a date, so it should be added again.
+    Keep in mind that the order of the datasets in both params should be in the same order
+    :param dateless: list of normalized (dateless) datasets.
+    :param dates: list of original datasets containing the dates.
+    :return: the normalized datasets with dates.
+    """
+    result: List = list()
+    for i, df in enumerate(dateless):
+        normalized = pd.DataFrame(dateless[i], columns=['FG', 'TG', 'TN', 'TX', 'SQ', 'DR', 'RH'])
+        normalized.insert(0, 'Date',
+                          pd.DataFrame(dates[i], columns=['Date', 'FG', 'TG', 'TN', 'TX', 'SQ', 'DR', 'RH'])[
+                              'Date'])
+        print(f"Dataset:\n"
+              f"{normalized}")
+        result.append(normalized.to_numpy())
+    return result[0], *result[1:]
 
 
 def calculate_distance(a, b) -> float:
@@ -61,7 +89,7 @@ def calculate_distance(a, b) -> float:
     :param b: second list containing data
     :return: the euclidian distance as a float.
     """
-    return math.dist(a, b)
+    return np.sqrt(np.sum((a - b) ** 2))
 
 
 def translate(date):
@@ -123,7 +151,7 @@ def get_season(dataset, hvar_k):
         return "herfst"
 
 
-def KNN(training_dataset, test_dataset, hvar_k) -> List[str]:
+def KNN(training_dataset: np.array, test_dataset: np.array, hvar_k) -> List[str]:
     """
     The general k-nearest-neighbours algorithm.
     :param training_dataset: The dataset in which known weather data is collected.
@@ -138,7 +166,7 @@ def KNN(training_dataset, test_dataset, hvar_k) -> List[str]:
         # have to iterate k times over the dataset.
 
         # x[1:] because the date is stored in 'dataset' as well.
-        training_dataset = sorted(training_dataset, key=lambda x: calculate_distance(weatherdata, x[1:]))
+        training_dataset = sorted(training_dataset, key=lambda x: calculate_distance(weatherdata[1:], x[1:]))
         solved.append([get_season(training_dataset, hvar_k), weatherdata])
     return solved
 
@@ -148,26 +176,21 @@ if __name__ == '__main__':
     ################### PART ONE ####################
 
     dataset1: np.ndarray[int, Any] = np.genfromtxt('datasets/dataset1.csv', delimiter=';',
-                                                   usecols=[0, 1, 2, 3, 4, 5, 6, 7],
-                                                   converters={5: lambda s: 0 if s == b"-1" else float(s),
-                                                               7: lambda s: 0 if s == b"-1" else float(s)})
-    data1: np.ndarray[int, Any] = np.genfromtxt('datasets/days.csv', delimiter=';', usecols=[1, 2, 3, 4, 5, 6, 7],
-                                                converters={5: lambda s: 0 if s == b"-1" else float(s),
-                                                            7: lambda s: 0 if s == b"-1" else float(s)})
+                                                   usecols=[0, 1, 2, 3, 4, 5, 6, 7])
+    data1: np.ndarray[int, Any] = np.genfromtxt('datasets/days.csv', delimiter=';', usecols=[0, 1, 2, 3, 4, 5, 6, 7],
+                                                converters={})
+    validation1: np.ndarray[int, Any] = np.genfromtxt('datasets/validation1.csv', delimiter=';',
+                                                      usecols=[0, 1, 2, 3, 4, 5, 6, 7])
 
     # choose value for k.
-    k = 3
+    k = 60
 
     # normalize the datasets.
     # dataset1: pd.DataFrame = normalize_weather_data(dataset1)
     # data1: pd.DataFrame = normalize_weather_data(data1)
 
-    dataset1, data1 = normalize_weather_data(dataset1, data1, )
-
-    print(f"Dataset1:\n"
-          f"{dataset1}")
-    print(f"Data1:\n"
-          f"{data1}")
+    # dataset1, data1, validation1 = add_dates([*normalize_weather_data(dataset1, data1, validation1)],
+    #                                          [dataset1, data1, validation1])
 
     # print the assigned seasons
     print(f"The 9 assumed seasons for days.csv\n"
@@ -179,29 +202,27 @@ if __name__ == '__main__':
     # now for checking the validation list.
 
     # Create training_data with dates.
-    dataset2 = np.genfromtxt('datasets/dataset1.csv', delimiter=';', usecols=[0, 1, 2, 3, 4, 5, 6, 7],
-                             converters={5: lambda s: 0 if s == b"-1" else float(s),
-                                         7: lambda s: 0 if s == b"-1" else float(s)})
-    # Create test_data without dates.
-    data2 = np.genfromtxt('datasets/validation1.csv', delimiter=';', usecols=[1, 2, 3, 4, 5, 6, 7],
-                          converters={5: lambda s: 0 if s == b"-1" else float(s),
-                                      7: lambda s: 0 if s == b"-1" else float(s)})
+    dataset2: np.ndarray[int, Any] = np.genfromtxt('datasets/dataset1.csv', delimiter=';',
+                                                   usecols=[0, 1, 2, 3, 4, 5, 6, 7])
+    data2: np.ndarray[int, Any] = np.genfromtxt('datasets/validation1.csv', delimiter=';',
+                                                usecols=[0, 1, 2, 3, 4, 5, 6, 7],
+                                                converters={})
+    checkdates: np.ndarray[int, Any] = np.genfromtxt('datasets/validation1.csv', delimiter=';',
+                                                     usecols=[0, 1, 2, 3, 4, 5, 6, 7])
 
-    # list with dates to validate the assumed seasons
-    checkdates = np.genfromtxt('datasets/validation1.csv', delimiter=';', usecols=[0, 1, 2, 3, 4, 5, 6, 7],
-                               converters={5: lambda s: 0 if s == b"-1" else float(s),
-                                           7: lambda s: 0 if s == b"-1" else float(s)})
+    # normalize everything
+    dataset2, data2, checkdates = add_dates([*normalize_weather_data(dataset2, data2, checkdates)],
+                                            [dataset2, data2, checkdates])
 
     # Variable for the different accuracy rates.
     accuracy_points = []
 
-    # Running this takes a minute or two, so I included the png file.
-    for k in range(1, 100):
+    for k in range(1, 350):
         # Create a variable to keep track of successful season assumptions
         correct_assumpt = 0
-
+        result = KNN(dataset2, data2, k)
         # get the assumed seasons from KNN.
-        seasons = list(row[:][0] for row in KNN(dataset2, data2, k))
+        seasons = list(row[:][0] for row in result)
         for row_iter in range(len(seasons)):
             if translate(checkdates[row_iter][0]) == seasons[row_iter]:
                 correct_assumpt += 1
