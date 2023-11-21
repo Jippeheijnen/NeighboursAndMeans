@@ -1,10 +1,6 @@
 # k-Nearest assignment
 
-"""
-The data is in the following format
-(date);windspeed;temp_avg;temp_min;temp_max;suntime;raintime;rain_amt
 
-"""
 from typing import List, Any, Union, Tuple
 import numpy as np
 import pandas as pd
@@ -56,7 +52,7 @@ def normalize_weather_data(dset: np.ndarray[int, Any],
 
 def add_dates(dateless: list, dates) -> Tuple:
     """
-    The already normalised functions now lack a date, so it should be added again.
+    The normalised datasets now lack a date, so it should be added again.
     Keep in mind that the order of the datasets in both params should be in the same order
     :param dateless: list of normalized (dateless) datasets.
     :param dates: list of original datasets containing the dates.
@@ -167,10 +163,14 @@ if __name__ == '__main__':
 
     ################### PART ONE ####################
 
+    """
+    The data is in the following format
+    (date);windspeed;temp_avg;temp_min;temp_max;suntime;raintime;rain_amt
+
+    """
+
     dataset1: np.ndarray[int, Any] = np.genfromtxt('datasets/dataset1.csv', delimiter=';',
                                                    usecols=[0, 1, 2, 3, 4, 5, 6, 7])
-    data1: np.ndarray[int, Any] = np.genfromtxt('datasets/days.csv', delimiter=';', usecols=[0, 1, 2, 3, 4, 5, 6, 7],
-                                                converters={})
     validation1: np.ndarray[int, Any] = np.genfromtxt('datasets/validation1.csv', delimiter=';',
                                                       usecols=[0, 1, 2, 3, 4, 5, 6, 7])
 
@@ -202,13 +202,18 @@ if __name__ == '__main__':
     # Create training_data with dates.
     dataset2: np.ndarray[int, Any] = np.genfromtxt('datasets/dataset1.csv', delimiter=';',
                                                    usecols=[0, 1, 2, 3, 4, 5, 6, 7])
-    data2: np.ndarray[int, Any] = np.genfromtxt('datasets/validation1.csv', delimiter=';',
-                                                usecols=[0, 1, 2, 3, 4, 5, 6, 7],
-                                                converters={})
+    validation2: np.ndarray[int, Any] = np.genfromtxt('datasets/validation1.csv', delimiter=';',
+                                                      usecols=[0, 1, 2, 3, 4, 5, 6, 7],
+                                                      converters={})
+    days: np.ndarray[int, Any] = np.genfromtxt('datasets/days.csv', delimiter=';',
+                                               usecols=[0, 1, 2, 3, 4, 5, 6, 7],
+                                               converters={})
 
     # normalize everything
-    dataset2, data2 = add_dates([*normalize_weather_data(dataset2, data2)],
-                                            [dataset2, data2])
+    dataset2_dateless, validation2_dateless, days_dateless = normalize_weather_data(dataset2, validation2, days)
+
+    dataset2_dates, validation2_dates, days_dates = add_dates([dataset2_dateless, validation2_dateless, days_dateless],
+                                                        [dataset2, validation2, days])
 
     # Variable for the different accuracy rates.
     accuracy_points = []
@@ -216,11 +221,11 @@ if __name__ == '__main__':
     for k in range(1, 350):
         # Create a variable to keep track of successful season assumptions
         correct_assumpt = 0
-        result = KNN(dataset2, data2, k)
+        result = KNN(dataset2, validation2, k)
         # get the assumed seasons from KNN.
         seasons = list(row[:][0] for row in result)
         for row_iter in range(len(seasons)):
-            if translate(data2[row_iter][0]) == seasons[row_iter]:
+            if translate(validation2[row_iter][0]) == seasons[row_iter]:
                 correct_assumpt += 1
         accuracy_points.append(correct_assumpt)
 
@@ -233,3 +238,21 @@ if __name__ == '__main__':
     # in this plot, the best accuracy is 62,5 percent.
     # Note that this time the normalisation is applied to the datasets,
     # but the accuracy per k amount of neighbours does not change significantly.
+
+    ################### PART THREE ####################
+
+    # here we will check the seasons with an assumed optimal (no normalisation) k neighbours
+    k = 56
+
+    # print the assigned seasons (without using normalisation)
+    print(f"The 9 assumed seasons for days.csv (No normalisation used)\n"
+          f"{list(list[:][0] for list in KNN(dataset2, days, k))}"
+          f"\n")
+
+    # here we will check the seasons with an assumed optimal (normalisation) k neighbours
+    k = 100
+
+    # print the assigned seasons (using normalisation)
+    print(f"The 9 assumed seasons for days.csv (Normalisation used)\n"
+          f"{list(list[:][0] for list in KNN(dataset2_dates, days_dates, k))}"
+          f"\n")
