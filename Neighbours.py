@@ -68,8 +68,8 @@ def add_dates(dateless: list, dates) -> Tuple:
         normalized.insert(0, 'Date',
                           pd.DataFrame(dates[i], columns=['Date', 'FG', 'TG', 'TN', 'TX', 'SQ', 'DR', 'RH'])[
                               'Date'])
-        # print(f"Dataset:\n"
-        #       f"{normalized}")
+        print(f"Dataset:\n"
+              f"{normalized}")
         result.append(normalized.to_numpy())
     return result[0], *result[1:]
 
@@ -81,8 +81,7 @@ def calculate_distance(a, b) -> float:
     :param b: second list containing data
     :return: the euclidian distance as a float.
     """
-    result = np.sqrt(np.sum((a - b) ** 2))
-    return result
+    return np.sqrt(np.sum((a - b) ** 2))
 
 
 def translate(date):
