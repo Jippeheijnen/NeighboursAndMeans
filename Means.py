@@ -18,7 +18,7 @@ import copy
 import random
 
 import numpy as np
-from typing import Any
+from typing import Any, List, Union
 
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -27,12 +27,13 @@ from sklearn.cluster import KMeans
 from Neighbours import normalize_weather_data, add_dates, calculate_distance
 
 
-def validate_clusters(clusters, centroids):
+def validate_clusters(clusters: List[List[np.ndarray]], centroids: np.ndarray) -> float:
     """
-
-    :param clusters:
-    :param centroids:
-    :return:
+    This function calculates an error margin by dividing the total cum distance from
+    all cluster points to the cluster centroid, by the total amount of points combined.
+    :param clusters: The complete clusterset.
+    :param centroids: the centroids of each cluster.
+    :return: a floating point, between 0 and 1. It represents the cum distance divided by the total nodes.
     """
     distance_from_centroids: float = 0
     sum_of_points: int = sum([len(x) for x in clusters])
@@ -41,10 +42,17 @@ def validate_clusters(clusters, centroids):
         for point in clusters[clus_id]:
             distance_from_centroids += calculate_distance(point, centroid)
 
-    return distance_from_centroids/sum_of_points
+    return distance_from_centroids / sum_of_points
 
 
-def accuracy(dset, k, max_iter=100):
+def accuracy(dset: np.ndarray, k: int, max_iter: int = 10) -> float:
+    """
+    This function returns the lowest error margin by running the kMeans algorithm multiple times.
+    :param dset: the dataset with points.
+    :param k: amount of clusters.
+    :param max_iter: Max times of margin calculations.
+    :return: Lowest error margin for this k.
+    """
     margin = np.inf
 
     for _ in range(max_iter):
@@ -56,12 +64,13 @@ def accuracy(dset, k, max_iter=100):
     return margin
 
 
-def pick_centroids(dset: np.array, k: int):
+def pick_centroids(dset: np.ndarray, k: int) -> np.ndarray:
     """
-
-    :param dset:
-    :param k:
-    :return:
+    This function returns an array of randomized centroids for an amount of k.
+    It also checks if each centroid is unique to its predecessors.
+    :param dset: The dataset containing points.
+    :param k: Amount of centroids that will be picked.
+    :return: The chosen centroids, consisting of random points from dset.
     """
     centroids: np.array = dset[np.random.choice(len(dset), 1)]
 
@@ -75,13 +84,12 @@ def pick_centroids(dset: np.array, k: int):
     return centroids
 
 
-def assign_labels(dset: np.array, centroids: np.array, k: int) -> np.array:
+def assign_labels(dset: np.array, centroids: np.array) -> np.array:
     """
-
-    :param dset:
-    :param centroids:
-    :param k:
-    :return:
+    This function will assign labels to each datapoint, according to its distance to each centroid.
+    :param dset: The dataset containing points.
+    :param centroids: array of centroids.
+    :return: The whole dataset with labels at the index of its corresponding datapoint.
     """
 
     # creating a matrix of distances per point per centroid
@@ -90,22 +98,22 @@ def assign_labels(dset: np.array, centroids: np.array, k: int) -> np.array:
     for i, c in enumerate(centroids):
         distances[:, i] = [calculate_distance(x, c) for j, x in enumerate(dset)]
 
-    if False and distances.shape > (len(dset), 2):  # start checking whether distances are equal
-        for distance in distances:
-            for c in centroids:
-                pass
-    else:
-        labels = np.argmin(distances, axis=1)
+    labels = np.argmin(distances, axis=1)
 
     return labels
 
 
-def means(dset: np.array, centroids: np.array) -> Any:
+def means(dset: np.array, centroids: np.array) -> Union[List[List[np.ndarray]], np.ndarray]:
     """
-
-    :param dset:
-    :param centroids:
-    :return:
+    This is the kMeans algorithm.
+    1: It iterates through the dataset, and for each datapoint it calculates the distance to all centroids.
+    2: Each datapoint will be assigned to the cluster with the closest centroid to the datapoint.
+    3: Then the centroids are refreshed for all clusters and it starts again.
+    4: for each loop, an equality check occurs between the previous centroids and the new centroids. If they are equal,
+    it means no datapoint switched clusters, and the looping can be stopped.
+    :param dset: The dataset containing the datapoints.
+    :param centroids: The array of centroids.
+    :return: The completed clusterset and the according centroids.
     """
 
     k = len(centroids)
@@ -159,10 +167,10 @@ if __name__ == '__main__':
 
     k_max = 15
 
-    margins = [accuracy(dataset_dateless, k+1, 10) for k in range(k_max)]
+    margins = [accuracy(dataset_dateless, k + 1, 10) for k in range(k_max)]
 
     plt.plot(
-        [k+1 for k in range(k_max)],
+        [k + 1 for k in range(k_max)],
         margins,
         'o-',
         linewidth=2,
